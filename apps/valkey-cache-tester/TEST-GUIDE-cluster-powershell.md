@@ -2,16 +2,16 @@
 
 이 문서는 현재 아래 파일들로 배포된 Helm 기반 replication 환경을 내리고:
 
-- `nks-csi-storageclass.yaml`
-- `valkey-auth-secret.yaml`
-- `valkey-values-nks.yaml`
+- `deployments/replication-helm-nks/nks-csi-storageclass.yaml`
+- `deployments/replication-helm-nks/valkey-auth-secret.yaml`
+- `deployments/replication-helm-nks/valkey-values-nks.yaml`
 
-새로 만든 Valkey Cluster HA 구성으로 전환한 뒤, `valkey-cache-tester`로 테스트하는 과정을 PowerShell 기준으로 설명합니다.
+새로 만든 Valkey Cluster HA 구성으로 전환한 뒤, `apps/valkey-cache-tester` 앱으로 테스트하는 과정을 PowerShell 기준으로 설명합니다.
 
 이 가이드의 대상 파일:
 
-- Valkey Cluster HA: `k8s/valkey-cluster-ha`
-- Cache Tester Cluster overlay: `valkey-cache-tester/k8s/overlays/cluster`
+- Valkey Cluster HA: `deployments/cluster-ha`
+- Cache Tester Cluster overlay: `apps/valkey-cache-tester/k8s/overlays/cluster`
 
 ## 1. 작업 폴더 이동
 
@@ -26,7 +26,7 @@ Set-Location c:\Users\user\Desktop\신기호\업무용\30.PoC\valkey
 먼저 현재 테스트 앱이 떠 있다면 내립니다.
 
 ```powershell
-kubectl delete -k .\valkey-cache-tester\k8s\overlays\replication --ignore-not-found
+kubectl delete -k .\apps\valkey-cache-tester\k8s\overlays\replication --ignore-not-found
 ```
 
 그 다음 현재 Helm release를 삭제합니다.
@@ -59,7 +59,7 @@ StorageClass는 그대로 재사용합니다.
 
 아래 파일의 비밀번호를 실제 값으로 수정합니다.
 
-- `k8s/valkey-cluster-ha/secret.yaml`
+- `deployments/cluster-ha/secret.yaml`
 
 예시:
 
@@ -72,7 +72,7 @@ stringData:
 
 아래 파일의 값을 Cluster 비밀번호와 동일하게 맞춥니다.
 
-- `valkey-cache-tester/k8s/base/secret.yaml`
+- `apps/valkey-cache-tester/k8s/base/secret.yaml`
 
 예시:
 
@@ -86,18 +86,18 @@ stringData:
 ```powershell
 $Image = "<registry>/valkey-cache-tester:0.1.0"
 
-docker build -t $Image .\valkey-cache-tester
+docker build -t $Image .\apps\valkey-cache-tester
 docker push $Image
 ```
 
 그 다음 아래 파일에서 이미지를 실제 경로로 수정합니다.
 
-- `valkey-cache-tester/k8s/base/deployment.yaml`
+- `apps/valkey-cache-tester/k8s/base/deployment.yaml`
 
 ## 6. Cluster HA 배포
 
 ```powershell
-kubectl apply -k .\k8s\valkey-cluster-ha
+kubectl apply -k .\deployments\cluster-ha
 ```
 
 상태 확인:
@@ -150,7 +150,7 @@ kubectl exec -n valkey-cluster-ha valkey-cluster-0 -- `
 ## 8. Cache Tester Cluster overlay 배포
 
 ```powershell
-kubectl apply -k .\valkey-cache-tester\k8s\overlays\cluster
+kubectl apply -k .\apps\valkey-cache-tester\k8s\overlays\cluster
 kubectl get pods -n valkey-cluster-ha
 kubectl get svc -n valkey-cluster-ha
 ```
@@ -294,8 +294,8 @@ Invoke-RestMethod -Method Get -Uri "$BaseUrl/cache/items/demo-cluster?source=rea
 Cluster 환경 삭제:
 
 ```powershell
-kubectl delete -k .\valkey-cache-tester\k8s\overlays\cluster --ignore-not-found
-kubectl delete -k .\k8s\valkey-cluster-ha --ignore-not-found
+kubectl delete -k .\apps\valkey-cache-tester\k8s\overlays\cluster --ignore-not-found
+kubectl delete -k .\deployments\cluster-ha --ignore-not-found
 ```
 
 PVC까지 지우고 싶으면:
@@ -319,6 +319,6 @@ bootstrap Job이 완료되지 않음:
 
 앱 write/read 실패:
 
-- `valkey-cache-tester/k8s/base/secret.yaml` 비밀번호 불일치
+- `apps/valkey-cache-tester/k8s/base/secret.yaml` 비밀번호 불일치
 - Cluster seed 서비스가 준비되지 않음
 - 클라이언트가 replica read를 완전히 지원하지 않아 read가 fallback될 수 있음

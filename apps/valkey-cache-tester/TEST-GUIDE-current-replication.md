@@ -2,9 +2,9 @@
 
 이 가이드는 현재 Valkey가 아래 파일들로 배포되어 있다고 가정합니다.
 
-- `nks-csi-storageclass.yaml`
-- `valkey-auth-secret.yaml`
-- `valkey-values-nks.yaml`
+- `deployments/replication-helm-nks/nks-csi-storageclass.yaml`
+- `deployments/replication-helm-nks/valkey-auth-secret.yaml`
+- `deployments/replication-helm-nks/valkey-values-nks.yaml`
 
 또한 현재 Valkey 구성은 아래와 같다고 가정합니다.
 
@@ -15,20 +15,20 @@
 
 캐시 테스트 앱은 아래 overlay로 배포합니다.
 
-- `valkey-cache-tester/k8s/overlays/replication`
+- `apps/valkey-cache-tester/k8s/overlays/replication`
 
 ## 1. 테스트 앱 이미지 수정
 
 먼저 이미지를 빌드하고 레지스트리에 푸시합니다.
 
 ```powershell
-docker build -t <registry>/valkey-cache-tester:0.1.0 .\valkey-cache-tester
+docker build -t <registry>/valkey-cache-tester:0.1.0 .\apps\valkey-cache-tester
 docker push <registry>/valkey-cache-tester:0.1.0
 ```
 
 그 다음 아래 파일에서 이미지를 실제 경로로 바꿉니다.
 
-- `valkey-cache-tester/k8s/base/deployment.yaml`
+- `apps/valkey-cache-tester/k8s/base/deployment.yaml`
 
 이 값을:
 
@@ -42,11 +42,11 @@ image: ghcr.io/replace-me/valkey-cache-tester:0.1.0
 
 아래 파일을 수정합니다.
 
-- `valkey-cache-tester/k8s/base/secret.yaml`
+- `apps/valkey-cache-tester/k8s/base/secret.yaml`
 
 여기의 `VALKEY_PASSWORD`를 아래 파일에 들어간 비밀번호와 동일하게 맞춥니다.
 
-- `valkey-auth-secret.yaml`
+- `deployments/replication-helm-nks/valkey-auth-secret.yaml`
 
 예시:
 
@@ -60,7 +60,7 @@ stringData:
 replication overlay를 적용합니다.
 
 ```powershell
-kubectl apply -k .\valkey-cache-tester\k8s\overlays\replication
+kubectl apply -k .\apps\valkey-cache-tester\k8s\overlays\replication
 ```
 
 Pod와 Service를 확인합니다.
@@ -184,7 +184,7 @@ kubectl exec -n valkey deploy/valkey-cache-tester -- printenv | findstr VALKEY
 자주 보는 문제:
 
 - `/health/ready` 실패
-  - `valkey-cache-tester/k8s/base/secret.yaml`의 비밀번호가 틀림
+  - `apps/valkey-cache-tester/k8s/base/secret.yaml`의 비밀번호가 틀림
   - Valkey 서비스가 아직 준비되지 않음
 - write는 되는데 read가 실패
   - `valkey-read` 서비스가 없음

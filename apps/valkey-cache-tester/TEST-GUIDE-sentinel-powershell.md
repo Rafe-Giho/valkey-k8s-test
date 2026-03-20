@@ -2,16 +2,16 @@
 
 이 문서는 현재 아래 파일들로 배포된 Helm 기반 replication 환경을 내리고:
 
-- `nks-csi-storageclass.yaml`
-- `valkey-auth-secret.yaml`
-- `valkey-values-nks.yaml`
+- `deployments/replication-helm-nks/nks-csi-storageclass.yaml`
+- `deployments/replication-helm-nks/valkey-auth-secret.yaml`
+- `deployments/replication-helm-nks/valkey-values-nks.yaml`
 
-새로 만든 Sentinel HA 구성으로 전환한 뒤, `valkey-cache-tester`로 테스트하는 과정을 PowerShell 기준으로 설명합니다.
+새로 만든 Sentinel HA 구성으로 전환한 뒤, `apps/valkey-cache-tester` 앱으로 테스트하는 과정을 PowerShell 기준으로 설명합니다.
 
 이 가이드의 대상 파일:
 
-- Valkey Sentinel HA: `k8s/valkey-sentinel-ha`
-- Cache Tester Sentinel overlay: `valkey-cache-tester/k8s/overlays/sentinel`
+- Valkey Sentinel HA: `deployments/sentinel-ha`
+- Cache Tester Sentinel overlay: `apps/valkey-cache-tester/k8s/overlays/sentinel`
 
 ## 1. 작업 폴더 이동
 
@@ -26,7 +26,7 @@ Set-Location c:\Users\user\Desktop\신기호\업무용\30.PoC\valkey
 먼저 현재 테스트 앱이 떠 있다면 내립니다.
 
 ```powershell
-kubectl delete -k .\valkey-cache-tester\k8s\overlays\replication --ignore-not-found
+kubectl delete -k .\apps\valkey-cache-tester\k8s\overlays\replication --ignore-not-found
 ```
 
 그 다음 현재 Helm release를 삭제합니다.
@@ -59,7 +59,7 @@ StorageClass는 계속 재사용하므로 삭제하지 않습니다.
 
 아래 파일의 비밀번호를 실제 값으로 변경합니다.
 
-- `k8s/valkey-sentinel-ha/secret.yaml`
+- `deployments/sentinel-ha/secret.yaml`
 
 예시:
 
@@ -72,7 +72,7 @@ stringData:
 
 아래 파일의 비밀번호를 Sentinel HA 비밀번호와 동일하게 맞춥니다.
 
-- `valkey-cache-tester/k8s/base/secret.yaml`
+- `apps/valkey-cache-tester/k8s/base/secret.yaml`
 
 예시:
 
@@ -88,13 +88,13 @@ stringData:
 ```powershell
 $Image = "<registry>/valkey-cache-tester:0.1.0"
 
-docker build -t $Image .\valkey-cache-tester
+docker build -t $Image .\apps\valkey-cache-tester
 docker push $Image
 ```
 
 그 다음 아래 파일에서 이미지 값을 실제 경로로 수정합니다.
 
-- `valkey-cache-tester/k8s/base/deployment.yaml`
+- `apps/valkey-cache-tester/k8s/base/deployment.yaml`
 
 예시:
 
@@ -107,7 +107,7 @@ image: <registry>/valkey-cache-tester:0.1.0
 현재 Sentinel 구성은 namespace `valkey-sentinel-ha`에 올라갑니다.
 
 ```powershell
-kubectl apply -k .\k8s\valkey-sentinel-ha
+kubectl apply -k .\deployments\sentinel-ha
 ```
 
 배포 상태를 확인합니다.
@@ -128,7 +128,7 @@ kubectl get pvc -n valkey-sentinel-ha
 ## 7. Cache Tester Sentinel overlay 배포
 
 ```powershell
-kubectl apply -k .\valkey-cache-tester\k8s\overlays\sentinel
+kubectl apply -k .\apps\valkey-cache-tester\k8s\overlays\sentinel
 ```
 
 확인:
@@ -277,8 +277,8 @@ Invoke-RestMethod -Method Get -Uri "$BaseUrl/cache/items/demo-sentinel?source=re
 Sentinel 환경 삭제:
 
 ```powershell
-kubectl delete -k .\valkey-cache-tester\k8s\overlays\sentinel --ignore-not-found
-kubectl delete -k .\k8s\valkey-sentinel-ha --ignore-not-found
+kubectl delete -k .\apps\valkey-cache-tester\k8s\overlays\sentinel --ignore-not-found
+kubectl delete -k .\deployments\sentinel-ha --ignore-not-found
 ```
 
 PVC까지 지우고 싶으면:
@@ -291,7 +291,7 @@ kubectl delete pvc --all -n valkey-sentinel-ha
 
 `/health/ready` 실패:
 
-- `k8s/valkey-sentinel-ha/secret.yaml`와 `valkey-cache-tester/k8s/base/secret.yaml` 비밀번호가 다름
+- `deployments/sentinel-ha/secret.yaml`와 `apps/valkey-cache-tester/k8s/base/secret.yaml` 비밀번호가 다름
 - Sentinel Pod가 아직 quorum 형성 전
 
 write는 되는데 read가 실패:
