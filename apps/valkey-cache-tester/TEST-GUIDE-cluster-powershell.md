@@ -256,22 +256,13 @@ $SeedBody = @{
 Invoke-RestMethod -Method Post -Uri "$BaseUrl/cache/seed" -Headers $Headers -Body $SeedBody
 ```
 
-## 16. 장애 테스트 예시
+## 16. 장애 테스트 상세 가이드
 
-현재 cluster node 상태 확인:
+이 섹션도 실제 테스트 결과를 기록하지 않습니다. 각 장애 시나리오에서 정상적으로 보이면 어떤 현상이 나와야 하는지만 정리합니다.
 
-```powershell
-kubectl exec -n valkey-cluster-ha valkey-cluster-0 -- `
-  valkey-cli -a <비밀번호> CLUSTER NODES
-```
+### 16-1. 현재 cluster 상태 기준선 확인
 
-primary 하나를 삭제합니다.
-
-```powershell
-kubectl delete pod -n valkey-cluster-ha <primary-pod명>
-```
-
-잠시 후 다시 cluster 상태를 확인합니다.
+장애 테스트 전에 반드시 현재 슬롯과 역할 상태를 기록합니다.
 
 ```powershell
 kubectl exec -n valkey-cluster-ha valkey-cluster-0 -- `
@@ -281,13 +272,123 @@ kubectl exec -n valkey-cluster-ha valkey-cluster-0 -- `
   valkey-cli -a <비밀번호> CLUSTER NODES
 ```
 
-그 다음 앱 상태를 다시 확인합니다.
+정상적으로 보면:
+
+- `cluster_state:ok`
+- primary 3개, replica 3개
+- 각 primary마다 replica 1개가 매칭되어 있어야 합니다.
+
+### 16-2. replica Pod 장애 테스트
+
+replica Pod 하나를 삭제합니다.
+
+```powershell
+kubectl delete pod -n valkey-cluster-ha <replica-pod명>
+```
+
+재확인:
+
+```powershell
+kubectl exec -n valkey-cluster-ha valkey-cluster-0 -- `
+  valkey-cli -a <비밀번호> CLUSTER INFO
+
+kubectl exec -n valkey-cluster-ha valkey-cluster-0 -- `
+  valkey-cli -a <비밀번호> CLUSTER NODES
+
+Invoke-RestMethod -Method Get -Uri "$BaseUrl/health/ready"
+```
+
+정상적으로 보면:
+
+- `cluster_state:ok`는 유지되어야 합니다.
+- 해당 shard의 primary는 계속 write를 받아야 합니다.
+- 삭제된 replica가 없어도 primary가 살아 있는 동안 전체 서비스는 계속 동작할 수 있습니다.
+- replica Pod가 다시 뜨면 cluster에 replica로 다시 합류해야 합니다.
+
+### 16-3. primary Pod 장애 테스트
+
+현재 primary 하나를 선택해 삭제합니다.
+
+```powershell
+kubectl delete pod -n valkey-cluster-ha <primary-pod명>
+```
+
+재확인:
+
+```powershell
+kubectl exec -n valkey-cluster-ha valkey-cluster-0 -- `
+  valkey-cli -a <비밀번호> CLUSTER INFO
+
+kubectl exec -n valkey-cluster-ha valkey-cluster-0 -- `
+  valkey-cli -a <비밀번호> CLUSTER NODES
+
+Invoke-RestMethod -Method Get -Uri "$BaseUrl/health/ready"
+Invoke-RestMethod -Method Get -Uri "$BaseUrl/cache/items/demo-cluster?source=write"
+Invoke-RestMethod -Method Get -Uri "$BaseUrl/cache/items/demo-cluster?source=read"
+```
+
+정상적으로 보면:
+
+- 해당 primary의 replica가 새 primary로 승격되어야 합니다.
+- 승격 직후 잠깐 응답 지연이나 일부 키에 대한 짧은 실패가 있을 수 있습니다.
+- 하지만 일정 시간 후 `cluster_state:ok`로 돌아와야 합니다.
+- cluster-aware client는 새 topology를 따라가면서 다시 write/read가 가능해져야 합니다.
+
+### 16-4. 같은 shard의 primary와 replica를 모두 잃는 테스트
+
+같은 shard에 속한 primary와 replica를 둘 다 내리는 시나리오입니다.
+
+```powershell
+kubectl delete pod -n valkey-cluster-ha <primary-pod명>
+kubectl delete pod -n valkey-cluster-ha <그-primary의-replica-pod명>
+```
+
+재확인:
+
+```powershell
+kubectl exec -n valkey-cluster-ha valkey-cluster-0 -- `
+  valkey-cli -a <비밀번호> CLUSTER INFO
+
+kubectl exec -n valkey-cluster-ha valkey-cluster-0 -- `
+  valkey-cli -a <비밀번호> CLUSTER NODES
+```
+
+정상적으로 보면:
+
+- 이 경우 slot coverage가 깨질 수 있습니다.
+- 즉, 일부 키에 대한 요청 실패가 발생하는 것이 정상적인 관찰 결과입니다.
+- `cluster_state:fail` 또는 slot 불완전 상태가 보일 수 있습니다.
+- 이 상태는 cluster가 망가진 것이 아니라, 해당 shard를 복구할 replica가 없기 때문에 예상 가능한 결과입니다.
+
+### 16-5. 노드 복구 후 재합류 확인
+
+삭제했던 Pod가 다시 뜬 뒤 cluster에 어떻게 합류하는지 봅니다.
+
+```powershell
+kubectl get pods -n valkey-cluster-ha
+kubectl exec -n valkey-cluster-ha valkey-cluster-0 -- `
+  valkey-cli -a <비밀번호> CLUSTER NODES
+```
+
+정상적으로 보면:
+
+- 재시작한 Pod는 기존 cluster metadata에 따라 다시 적절한 역할로 붙어야 합니다.
+- replica로 복귀하거나, 승격된 새 primary 아래로 재합류하는 형태가 보여야 합니다.
+
+### 16-6. 앱 기준 최종 확인
+
+장애 테스트 후 앱 상태를 다시 확인합니다.
 
 ```powershell
 Invoke-RestMethod -Method Get -Uri "$BaseUrl/health/ready"
 Invoke-RestMethod -Method Get -Uri "$BaseUrl/cache/items/demo-cluster?source=write"
 Invoke-RestMethod -Method Get -Uri "$BaseUrl/cache/items/demo-cluster?source=read"
 ```
+
+정상적으로 보면:
+
+- cluster가 정상 coverage를 유지하는 시나리오에서는 앱 read/write가 다시 성공해야 합니다.
+- coverage가 깨진 시나리오에서는 일부 요청이 실패할 수 있으며, 그 역시 예상된 관찰 결과입니다.
 
 ## 17. 정리
 
