@@ -1,0 +1,114 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 520" width="860" height="520" font-family="Segoe UI, Arial, sans-serif">
+
+  <!-- Background -->
+  <rect width="860" height="520" fill="#f8f9fa" rx="12"/>
+
+  <!-- Title -->
+  <text x="430" y="36" text-anchor="middle" font-size="18" font-weight="bold" fill="#1a1a2e">Valkey Cluster HA</text>
+
+  <!-- Namespace box -->
+  <rect x="20" y="55" width="820" height="440" rx="10" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <text x="36" y="75" font-size="11" fill="#2563eb" font-weight="bold">namespace: valkey-cluster-ha</text>
+
+  <!-- Client -->
+  <rect x="44" y="88" width="130" height="80" rx="8" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5"/>
+  <text x="109" y="112" text-anchor="middle" font-size="12" font-weight="bold" fill="#1e293b">Client</text>
+  <text x="109" y="130" text-anchor="middle" font-size="10" fill="#64748b">(Cache Tester)</text>
+  <text x="109" y="148" text-anchor="middle" font-size="10" fill="#64748b">cluster-aware</text>
+
+  <!-- Service: seed -->
+  <rect x="240" y="88" width="200" height="40" rx="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="340" y="104" text-anchor="middle" font-size="11" font-weight="bold" fill="#1d4ed8">Service: valkey-cluster</text>
+  <text x="340" y="120" text-anchor="middle" font-size="10" fill="#1d4ed8">seed endpoint :6379</text>
+
+  <!-- Service: headless -->
+  <rect x="460" y="88" width="220" height="40" rx="8" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5"/>
+  <text x="570" y="104" text-anchor="middle" font-size="11" font-weight="bold" fill="#0369a1">Headless: valkey-cluster-headless</text>
+  <text x="570" y="120" text-anchor="middle" font-size="10" fill="#0369a1">node discovery</text>
+
+  <!-- Arrow: client -> seed service -->
+  <line x1="174" y1="118" x2="238" y2="108" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow-blue)"/>
+
+  <!-- Bootstrap Job -->
+  <rect x="700" y="88" width="120" height="40" rx="8" fill="#fef9c3" stroke="#ca8a04" stroke-width="1.5"/>
+  <text x="760" y="104" text-anchor="middle" font-size="11" font-weight="bold" fill="#92400e">Job: bootstrap</text>
+  <text x="760" y="120" text-anchor="middle" font-size="10" fill="#92400e">cluster create</text>
+
+  <!-- Slot labels -->
+  <text x="200" y="172" text-anchor="middle" font-size="10" fill="#475569" font-weight="bold">Slot 0 ~ 5460</text>
+  <text x="430" y="172" text-anchor="middle" font-size="10" fill="#475569" font-weight="bold">Slot 5461 ~ 10922</text>
+  <text x="660" y="172" text-anchor="middle" font-size="10" fill="#475569" font-weight="bold">Slot 10923 ~ 16383</text>
+
+  <!-- Shard 0: Primary valkey-0 -->
+  <rect x="100" y="185" width="200" height="110" rx="8" fill="#fff7ed" stroke="#f97316" stroke-width="2"/>
+  <text x="200" y="207" text-anchor="middle" font-size="12" font-weight="bold" fill="#c2410c">valkey-0</text>
+  <text x="200" y="225" text-anchor="middle" font-size="11" fill="#ea580c">(primary)</text>
+  <text x="200" y="243" text-anchor="middle" font-size="10" fill="#64748b">Shard 0</text>
+  <rect x="118" y="255" width="164" height="22" rx="4" fill="#fed7aa" stroke="#f97316" stroke-width="1"/>
+  <text x="200" y="270" text-anchor="middle" font-size="10" fill="#c2410c">PVC (data)</text>
+
+  <!-- Shard 1: Primary valkey-1 -->
+  <rect x="330" y="185" width="200" height="110" rx="8" fill="#fff7ed" stroke="#f97316" stroke-width="2"/>
+  <text x="430" y="207" text-anchor="middle" font-size="12" font-weight="bold" fill="#c2410c">valkey-1</text>
+  <text x="430" y="225" text-anchor="middle" font-size="11" fill="#ea580c">(primary)</text>
+  <text x="430" y="243" text-anchor="middle" font-size="10" fill="#64748b">Shard 1</text>
+  <rect x="348" y="255" width="164" height="22" rx="4" fill="#fed7aa" stroke="#f97316" stroke-width="1"/>
+  <text x="430" y="270" text-anchor="middle" font-size="10" fill="#c2410c">PVC (data)</text>
+
+  <!-- Shard 2: Primary valkey-2 -->
+  <rect x="560" y="185" width="200" height="110" rx="8" fill="#fff7ed" stroke="#f97316" stroke-width="2"/>
+  <text x="660" y="207" text-anchor="middle" font-size="12" font-weight="bold" fill="#c2410c">valkey-2</text>
+  <text x="660" y="225" text-anchor="middle" font-size="11" fill="#ea580c">(primary)</text>
+  <text x="660" y="243" text-anchor="middle" font-size="10" fill="#64748b">Shard 2</text>
+  <rect x="578" y="255" width="164" height="22" rx="4" fill="#fed7aa" stroke="#f97316" stroke-width="1"/>
+  <text x="660" y="270" text-anchor="middle" font-size="10" fill="#c2410c">PVC (data)</text>
+
+  <!-- Replication arrows (primary -> replica) -->
+  <line x1="200" y1="295" x2="200" y2="355" stroke="#f97316" stroke-width="1.5" marker-end="url(#arrow-orange)"/>
+  <text x="214" y="330" font-size="9" fill="#f97316">복제</text>
+  <line x1="430" y1="295" x2="430" y2="355" stroke="#f97316" stroke-width="1.5" marker-end="url(#arrow-orange)"/>
+  <text x="444" y="330" font-size="9" fill="#f97316">복제</text>
+  <line x1="660" y1="295" x2="660" y2="355" stroke="#f97316" stroke-width="1.5" marker-end="url(#arrow-orange)"/>
+  <text x="674" y="330" font-size="9" fill="#f97316">복제</text>
+
+  <!-- Shard 0: Replica valkey-3 -->
+  <rect x="100" y="355" width="200" height="110" rx="8" fill="#f0fdf4" stroke="#22c55e" stroke-width="2"/>
+  <text x="200" y="377" text-anchor="middle" font-size="12" font-weight="bold" fill="#15803d">valkey-3</text>
+  <text x="200" y="395" text-anchor="middle" font-size="11" fill="#16a34a">(replica)</text>
+  <text x="200" y="413" text-anchor="middle" font-size="10" fill="#64748b">Shard 0 replica</text>
+  <rect x="118" y="425" width="164" height="22" rx="4" fill="#bbf7d0" stroke="#22c55e" stroke-width="1"/>
+  <text x="200" y="440" text-anchor="middle" font-size="10" fill="#15803d">PVC (data)</text>
+
+  <!-- Shard 1: Replica valkey-4 -->
+  <rect x="330" y="355" width="200" height="110" rx="8" fill="#f0fdf4" stroke="#22c55e" stroke-width="2"/>
+  <text x="430" y="377" text-anchor="middle" font-size="12" font-weight="bold" fill="#15803d">valkey-4</text>
+  <text x="430" y="395" text-anchor="middle" font-size="11" fill="#16a34a">(replica)</text>
+  <text x="430" y="413" text-anchor="middle" font-size="10" fill="#64748b">Shard 1 replica</text>
+  <rect x="348" y="425" width="164" height="22" rx="4" fill="#bbf7d0" stroke="#22c55e" stroke-width="1"/>
+  <text x="430" y="440" text-anchor="middle" font-size="10" fill="#15803d">PVC (data)</text>
+
+  <!-- Shard 2: Replica valkey-5 -->
+  <rect x="560" y="355" width="200" height="110" rx="8" fill="#f0fdf4" stroke="#22c55e" stroke-width="2"/>
+  <text x="660" y="377" text-anchor="middle" font-size="12" font-weight="bold" fill="#15803d">valkey-5</text>
+  <text x="660" y="395" text-anchor="middle" font-size="11" fill="#16a34a">(replica)</text>
+  <text x="660" y="413" text-anchor="middle" font-size="10" fill="#64748b">Shard 2 replica</text>
+  <rect x="578" y="425" width="164" height="22" rx="4" fill="#bbf7d0" stroke="#22c55e" stroke-width="1"/>
+  <text x="660" y="440" text-anchor="middle" font-size="10" fill="#15803d">PVC (data)</text>
+
+  <!-- Cluster peer connections (dashed between primaries) -->
+  <line x1="300" y1="230" x2="328" y2="230" stroke="#94a3b8" stroke-width="1" stroke-dasharray="3,2"/>
+  <line x1="530" y1="230" x2="558" y2="230" stroke="#94a3b8" stroke-width="1" stroke-dasharray="3,2"/>
+
+  <!-- Footer -->
+  <text x="44" y="500" font-size="10" fill="#64748b">Seed: valkey-cluster.valkey-cluster-ha.svc.cluster.local:6379  |  클라이언트가 MOVED/ASK redirection 처리 필요</text>
+
+  <defs>
+    <marker id="arrow-blue" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#3b82f6"/>
+    </marker>
+    <marker id="arrow-orange" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#f97316"/>
+    </marker>
+  </defs>
+
+</svg>
