@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: valkey-cache-tester-config
+data:
+  VALKEY_MODE: standalone
+  VALKEY_HOST: valkey
+  VALKEY_PORT: "6379"
+  VALKEY_READ_HOST: valkey-read
+  VALKEY_READ_PORT: "6379"

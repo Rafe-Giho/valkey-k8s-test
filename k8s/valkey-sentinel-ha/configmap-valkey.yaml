@@ -1,0 +1,59 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: valkey-node-scripts
+data:
+  start-valkey.sh: |
+    #!/bin/sh
+    set -eu
+
+    ordinal="${HOSTNAME##*-}"
+    self_fqdn="${HOSTNAME}.valkey-nodes.${POD_NAMESPACE}.svc.cluster.local"
+    default_master="valkey-0.valkey-nodes.${POD_NAMESPACE}.svc.cluster.local"
+    sentinel_service="valkey-sentinel.${POD_NAMESPACE}.svc.cluster.local"
+    config_file="/data/valkey.conf"
+
+    master_host=""
+    master_port="6379"
+
+    sentinel_reply="$(valkey-cli -h "${sentinel_service}" -p 26379 --raw SENTINEL get-master-addr-by-name mymaster 2>/dev/null || true)"
+    if [ -n "${sentinel_reply}" ]; then
+      master_host="$(printf '%s\n' "${sentinel_reply}" | sed -n '1p')"
+      master_port="$(printf '%s\n' "${sentinel_reply}" | sed -n '2p')"
+    fi
+
+    if [ -z "${master_host}" ]; then
+      if [ "${ordinal}" = "0" ]; then
+        role="master"
+      else
+        role="replica"
+        master_host="${default_master}"
+      fi
+    else
+      if [ "${master_host}" = "${self_fqdn}" ] || [ "${master_host}" = "${HOSTNAME}" ]; then
+        role="master"
+      else
+        role="replica"
+      fi
+    fi
+
+    cat > "${config_file}" <<EOF
+    bind 0.0.0.0
+    protected-mode no
+    port 6379
+    dir /data
+    appendonly yes
+    requirepass ${VALKEY_PASSWORD}
+    masterauth ${VALKEY_PASSWORD}
+    replica-read-only yes
+    replica-announce-ip ${self_fqdn}
+    replica-announce-port 6379
+    EOF
+
+    if [ "${role}" = "replica" ]; then
+      cat >> "${config_file}" <<EOF
+    replicaof ${master_host} ${master_port}
+    EOF
+    fi
+
+    exec valkey-server "${config_file}"

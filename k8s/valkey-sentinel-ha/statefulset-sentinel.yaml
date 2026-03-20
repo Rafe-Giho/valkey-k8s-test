@@ -1,0 +1,85 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: valkey-sentinel
+spec:
+  serviceName: valkey-sentinel-peers
+  replicas: 3
+  podManagementPolicy: Parallel
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: valkey-sentinel-ha
+      app.kubernetes.io/component: sentinel
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: valkey-sentinel-ha
+        app.kubernetes.io/component: sentinel
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                topologyKey: kubernetes.io/hostname
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: valkey-sentinel-ha
+                    app.kubernetes.io/component: sentinel
+      containers:
+        - name: sentinel
+          image: docker.io/valkey/valkey:9.0.3
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/sh
+            - /opt/scripts/start-sentinel.sh
+          env:
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: VALKEY_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: valkey-auth
+                  key: password
+          ports:
+            - name: sentinel
+              containerPort: 26379
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+          readinessProbe:
+            tcpSocket:
+              port: 26379
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: 26379
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          volumeMounts:
+            - name: scripts
+              mountPath: /opt/scripts
+            - name: sentinel-data
+              mountPath: /sentinel-data
+      volumes:
+        - name: scripts
+          configMap:
+            name: valkey-sentinel-scripts
+            defaultMode: 0755
+  volumeClaimTemplates:
+    - metadata:
+        name: sentinel-data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: csi-storageclass
+        resources:
+          requests:
+            storage: 1Gi

@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: valkey-cache-tester-config
+data:
+  VALKEY_MODE: cluster
+  VALKEY_CLUSTER_NODES: valkey-cluster:6379

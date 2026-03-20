@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: valkey-cluster-scripts
+data:
+  start-valkey.sh: |
+    #!/bin/sh
+    set -eu
+
+    self_fqdn="${HOSTNAME}.valkey-cluster-headless.${POD_NAMESPACE}.svc.cluster.local"
+    config_file="/data/valkey.conf"
+
+    cat > "${config_file}" <<EOF
+    bind 0.0.0.0
+    protected-mode no
+    port 6379
+    cluster-enabled yes
+    cluster-config-file /data/nodes.conf
+    cluster-node-timeout 5000
+    cluster-announce-hostname ${self_fqdn}
+    cluster-preferred-endpoint-type hostname
+    cluster-announce-port 6379
+    cluster-announce-bus-port 16379
+    dir /data
+    appendonly yes
+    requirepass ${VALKEY_PASSWORD}
+    masterauth ${VALKEY_PASSWORD}
+    replica-read-only yes
+    EOF
+
+    exec valkey-server "${config_file}"

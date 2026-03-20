@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: valkey-cache-tester-config
+data:
+  VALKEY_MODE: standalone
+  VALKEY_USERNAME: default
+  VALKEY_HOST: valkey
+  VALKEY_PORT: "6379"
+  VALKEY_READ_HOST: valkey-read
+  VALKEY_READ_PORT: "6379"
+  VALKEY_SENTINEL_MASTER_NAME: mymaster
+  VALKEY_SENTINEL_HOSTS: valkey-sentinel:26379
+  VALKEY_CLUSTER_NODES: valkey-cluster:6379
+  CACHE_KEY_PREFIX: cache-test
+  DEFAULT_TTL_SECONDS: "300"
+  LOG_LEVEL: INFO

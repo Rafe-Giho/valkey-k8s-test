@@ -1,0 +1,50 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: valkey-cluster-bootstrap
+spec:
+  ttlSecondsAfterFinished: 300
+  backoffLimit: 10
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: bootstrap
+          image: docker.io/valkey/valkey:9.0.3
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: VALKEY_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: valkey-auth
+                  key: password
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -eu
+
+              nodes=""
+              for ordinal in 0 1 2 3 4 5; do
+                host="valkey-cluster-${ordinal}.valkey-cluster-headless.${POD_NAMESPACE}.svc.cluster.local"
+                nodes="${nodes} ${host}:6379"
+              done
+
+              for ordinal in 0 1 2 3 4 5; do
+                host="valkey-cluster-${ordinal}.valkey-cluster-headless.${POD_NAMESPACE}.svc.cluster.local"
+                until valkey-cli -h "${host}" -p 6379 -a "${VALKEY_PASSWORD}" PING >/dev/null 2>&1; do
+                  echo "waiting for ${host}"
+                  sleep 5
+                done
+              done
+
+              if valkey-cli -h "valkey-cluster-0.valkey-cluster-headless.${POD_NAMESPACE}.svc.cluster.local" -p 6379 -a "${VALKEY_PASSWORD}" CLUSTER INFO 2>/dev/null | grep -q "cluster_state:ok"; then
+                echo "cluster already initialized"
+                exit 0
+              fi
+
+              valkey-cli --cluster create ${nodes} --cluster-replicas 1 -a "${VALKEY_PASSWORD}" --cluster-yes

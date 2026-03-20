@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: valkey-sentinel-scripts
+data:
+  start-sentinel.sh: |
+    #!/bin/sh
+    set -eu
+
+    conf_dir="/sentinel-data"
+    conf_file="${conf_dir}/sentinel.conf"
+    master_host="valkey-0.valkey-nodes.${POD_NAMESPACE}.svc.cluster.local"
+
+    mkdir -p "${conf_dir}"
+
+    cat > "${conf_file}" <<EOF
+    port 26379
+    bind 0.0.0.0
+    protected-mode no
+    dir ${conf_dir}
+    sentinel resolve-hostnames yes
+    sentinel announce-hostnames yes
+    sentinel monitor mymaster ${master_host} 6379 2
+    sentinel down-after-milliseconds mymaster 5000
+    sentinel failover-timeout mymaster 60000
+    sentinel parallel-syncs mymaster 1
+    sentinel auth-pass mymaster ${VALKEY_PASSWORD}
+    EOF
+
+    exec valkey-server "${conf_file}" --sentinel
